@@ -1,0 +1,1 @@
+Extensible python parser for MT940 and MT942 files. 
