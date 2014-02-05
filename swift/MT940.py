@@ -55,9 +55,13 @@ class MTTransaction(object):
         for attr in self.__slots__:
             setattr(self, attr, None)
 
-    def update(self, **kwargs):
+    def update(self, *args, **kwargs):
         for key, val in kwargs.items():
-            setattr(self, key, val)
+            if args and args[0]:
+                old_val = getattr(self, key, '')
+                setattr(self, key, str(old_val) + str(val))
+            else:
+                setattr(self, key, val)
 
 class MTStatement(object):
 
@@ -79,11 +83,14 @@ class MTStatement(object):
         self._current_transaction.update(**kwargs)
         self.transactions.append(self._current_transaction)
 
-    def update_transaction(self, **kwargs):
+    def update_transaction(self, *args, **kwargs):
         if self._current_transaction:
-            self._current_transaction.update(**kwargs)
+            self._current_transaction.update(*args, **kwargs)
         else:
             raise NoTransaction("No current transaction defined")
+
+    def current_transaction(self):
+        return self._current_transaction        
 
 class MT940Statement(MTStatement):
 
@@ -146,6 +153,7 @@ class MTStatementParser(object):
                 self._parse_header(line)       
             elif line.startswith(self._trailer):
                 self._parse_statement(statement_lines)
+                self._statement_parsed()
                 statement_lines = []
             else:
                 statement_lines.append(line)
@@ -191,6 +199,8 @@ class MTStatementParser(object):
         if not self.REHEADER.match(line):
             raise InvalidSwiftHeader("Invalid swift header `%s`" % line)
 
+    def _statement_parsed(self):
+        pass
 
     def _field_20(self, value, subfields=[]):
         m = self.RE20.match(value)
@@ -218,7 +228,6 @@ class MTStatementParser(object):
         else:
             raise InvalidFieldValue("Invalid field 28C value `%s`" % value)
         return m
-
 
 
     def _field_61(self, value, subfields=[]):

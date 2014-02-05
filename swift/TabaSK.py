@@ -5,8 +5,8 @@ import datetime, re
 import MT940
 
 class MT940TransactionSK(MT940.MTTransaction):
-    __slots__ = ['vs', 'ks', 'ss', 'message', 'other_account', 'other_name']
-
+    __slots__ = ['vs', 'ks', 'ss', 'message', 'other_account', 
+                 'other_name', 'message', 'pos_number', 'other_ref']
 
 class MT940StatementSK(MT940.MT940Statement):
     _transaction_class = MT940TransactionSK
@@ -33,34 +33,49 @@ class TabaParser940(MT940.MT940Parser):
         self.current_statement.update(account = "%s-%s/%s" % (m.group(2), m.group(3), m.group(4)))
 
     def _field_86(self, value, subfields=[]):
+        statement = self.current_statement
+        type_code = getattr(statement.current_transaction(), 'type_code', None)
+        cust_ref = getattr(statement.current_transaction(), 'cust_ref', None)
+
         for line in subfields:
-            if line.startswith('?24'):
-                self.current_statement.update_transaction(message=line[3:])
+            if line.startswith('?20VS'):
+                statement.update_transaction(vs=line[5:])
+            elif line.startswith('?21SS'):
+                statement.update_transaction(ss=line[5:])
+            elif line.startswith('?22KS'):
+                statement.update_transaction(ss=line[5:])
+            elif line.startswith('?23POS'):
+                statement.update_transaction(pos_number=line[6:])                
+            elif line.startswith('?24'):
+                statement.update_transaction(message = line[3:])
+            elif line.startswith('?25') or line.startswith('?26') or line.startswith('?27') \
+                                        or line.startswith('?28') or line.startswith('?29'):
+                if line[3:]:
+                    statement.update_transaction(True, message = line[3:])
             elif line.startswith('?31'):
+                if cust_ref in ('DEPOSIT', 'FEES'):
+                    statement.update_transaction(other_name =  line[3:])
+                elif cust_ref in ('COLLECTION', 'INTER.CAPITALIS.'):
+                    pass
+                else:
+                    m = self.RE25.match(line[3:])
+                    if m:
+                        statement.update_transaction(other_account = "%s-%s/%s" % 
+                                                    (m.group(2), m.group(3), m.group(4)))
+                    else:
+                        raise MT940.InvalidFieldValue("Invalid field 86:31 value `%s`" % line[3:])
+            elif line.startswith('?32'):
+                statement.update_transaction(other_name=line[3:])
+            elif line.startswith('?33'):
+                statement.update_transaction(True, other_name=" " +line[3:])
+            elif line.startswith('?38') and cust_ref not in ('COLLECTION', 'INTER.CAPITALIS.', 'DEPOSIT', 'FEES'):
                 m = self.RE25.match(line[3:])
                 if m:
-                    self.current_statement.update_transaction(other_account = "%s-%s/%s" % 
-                                                              (m.group(2), m.group(3), m.group(4)))
+                    statement.update(other_account = "%s-%s/%s" % (m.group(2), m.group(3), m.group(4)))
                 else:
-                    pass
-                    #raise InvalidFieldValue("Invalid field 86:31 value `%s`" % line[3:])
-            elif line.startswith('?32'):
-                self.current_statement.update_transaction(other_name=line[3:])
+                    raise MT940.InvalidFieldValue("Invalid field 86:38 value `%s`" % line[3:])           
             elif line.startswith('?60'):
-                (vs, ss, ks) = (None, None, None)
-                symbols = filter(None, line[3:].split('/'))
-                for symbol in symbols:
-                    if symbol.startswith('VS'):
-                        vs = symbol[3:] or None
-                    elif symbol.startswith('SS'):
-                        ss = symbol[3:] or None
-                    elif symbol.startswith('KS'):
-                        ks = symbol[3:] or None
-                    else:
-                        pass
-                        #raise InvalidFieldValue("Invalid field 86:60 value `%s`" % line[3:])
-
-                self.current_statement.update_transaction(vs = vs, ss = ss, ks = ks)
+                statement.update_transaction(other_ref = line[3:])
 
 class TabaParser942(MT940.MT942Parser):
 
