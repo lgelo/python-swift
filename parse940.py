@@ -11,3 +11,5 @@ if __name__ == '__main__':
     for filename in glob.glob(pattern):
         print "Parsing %s ..." % filename
         statements = parser.parse_file(filename)
+        for st in statements:
+            print "Statement:\n", st.to_json()

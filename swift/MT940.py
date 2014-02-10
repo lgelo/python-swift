@@ -3,6 +3,7 @@
 
 import datetime, re
 from decimal import Decimal
+from itertools import chain
 
 F61_CODES = {
             'FCHG': 'Charges and other expenses',
@@ -47,7 +48,16 @@ class InvalidSwift(Exception):
 class UnfinishedStatement(Exception):
     pass
 
-class MTTransaction(object):
+class JSONObject(object):
+
+    def _attrs(self):
+        return list(set(chain(*[getattr(cls, '__slots__', []) for cls in type(self).__mro__])))
+
+    def to_json(self):
+        return dict((k, getattr(self,k,'')) for k in self._attrs() if not k.startswith('_') )
+
+
+class MTTransaction(JSONObject):
 
     __slots__ = ['value_date', 'entry_date', 'amount', 'type_code', 'cust_ref', 'bank_ref']
 
@@ -63,25 +73,28 @@ class MTTransaction(object):
             else:
                 setattr(self, key, val)
 
-class MTStatement(object):
+class MTStatement(JSONObject):
 
-    __slots__ = ['transaction_ref', 'number', 'account', 'transactions']
+    __slots__ = ['transaction_ref', 'number', 'account', '_transactions']
     _transaction_class = MTTransaction
 
     def __init__(self, tref):
         self.transaction_ref = tref
         self.number = None
         self.account = None
-        self.transactions = []
+        self._transactions = []
 
     def update(self, **kwargs):
         for key, val in kwargs.items():
             setattr(self, key, val)
             
+    def transactions(self):
+        return self._transactions
+
     def add_transaction(self, **kwargs):
         self._current_transaction = self._transaction_class()
         self._current_transaction.update(**kwargs)
-        self.transactions.append(self._current_transaction)
+        self._transactions.append(self._current_transaction)
 
     def update_transaction(self, *args, **kwargs):
         if self._current_transaction:
@@ -91,6 +104,14 @@ class MTStatement(object):
 
     def current_transaction(self):
         return self._current_transaction        
+
+    def to_json(self):
+        json = super(MTStatement, self).to_json()
+        json['statements'] = list(s.to_json() for s in self._transactions)
+        return json
+
+    #def __str__(self):
+    #    return ''.join('%s: %s\n' % (k, getattr(self,k,'')) for k in self._attrs() if not k.startswith('_') )
 
 class MT940Statement(MTStatement):
 
@@ -120,6 +141,7 @@ class MTStatementParser(object):
 
     _header = '{1:'
     _trailer = '-}'
+    _encoding = None
     _statement_class = MTStatement
 
     REHEADER = re.compile("^\{1\:F01([A-Z]{12})([0-9]{4})([0-9]{6})\}"
@@ -149,6 +171,8 @@ class MTStatementParser(object):
             line = line.strip()
             if not line:
                 continue
+            if self._encoding:
+                line = line.decode(self._encoding).encode('utf-8')
             if self._header and line.startswith(self._header):
                 self._parse_header(line)       
             elif line.startswith(self._trailer):

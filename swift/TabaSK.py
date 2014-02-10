@@ -20,6 +20,7 @@ class TabaParser940(MT940.MT940Parser):
     _statement_class = MT940StatementSK
     _header = None
     _trailer = '-'
+    _encoding = 'ibm852'
 
     RE20 = re.compile("^MC940([0-9]{6})00000$")
     RE25 = re.compile("^SK([0-9]{2})([0-9]{4})([0-9]{6})([0-9]{10})$")
@@ -38,12 +39,14 @@ class TabaParser940(MT940.MT940Parser):
         cust_ref = getattr(statement.current_transaction(), 'cust_ref', None)
 
         for line in subfields:
+            if re.match('^\?\d\d$', line):
+                continue
             if line.startswith('?20VS'):
                 statement.update_transaction(vs=line[5:])
             elif line.startswith('?21SS'):
                 statement.update_transaction(ss=line[5:])
             elif line.startswith('?22KS'):
-                statement.update_transaction(ss=line[5:])
+                statement.update_transaction(ks=line[5:])
             elif line.startswith('?23POS'):
                 statement.update_transaction(pos_number=line[6:])                
             elif line.startswith('?24'):
