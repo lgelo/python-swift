@@ -3,7 +3,8 @@
 
 import datetime, re
 from decimal import Decimal
-from itertools import chain
+
+from . import JSONObject
 
 F61_CODES = {
             'FCHG': 'Charges and other expenses',
@@ -47,15 +48,6 @@ class InvalidSwift(Exception):
 
 class UnfinishedStatement(Exception):
     pass
-
-class JSONObject(object):
-
-    def _attrs(self):
-        return list(set(chain(*[getattr(cls, '__slots__', []) for cls in type(self).__mro__])))
-
-    def to_json(self):
-        return dict((k, getattr(self,k,'')) for k in self._attrs() if not k.startswith('_') )
-
 
 class MTTransaction(JSONObject):
 

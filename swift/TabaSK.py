@@ -31,7 +31,7 @@ class TabaParser940(MT940.MT940Parser):
 
     def _field_25(self, value, subfields=[]):
         m = super(TabaParser940, self)._field_25(value, subfields)
-        self.current_statement.update(account = "%s-%s/%s" % (m.group(2), m.group(3), m.group(4)))
+        self.current_statement.update(account = "%s-%s/%s" % (m.group(3), m.group(4), m.group(2)))
 
     def _field_86(self, value, subfields=[]):
         statement = self.current_statement
@@ -64,7 +64,7 @@ class TabaParser940(MT940.MT940Parser):
                     m = self.RE25.match(line[3:])
                     if m:
                         statement.update_transaction(other_account = "%s-%s/%s" % 
-                                                    (m.group(2), m.group(3), m.group(4)))
+                                                    (m.group(3), m.group(4), m.group(2)))
                     else:
                         raise MT940.InvalidFieldValue("Invalid field 86:31 value `%s`" % line[3:])
             elif line.startswith('?32'):
@@ -74,7 +74,7 @@ class TabaParser940(MT940.MT940Parser):
             elif line.startswith('?38') and cust_ref not in ('COLLECTION', 'INTER.CAPITALIS.', 'DEPOSIT', 'FEES'):
                 m = self.RE25.match(line[3:])
                 if m:
-                    statement.update(other_account = "%s-%s/%s" % (m.group(2), m.group(3), m.group(4)))
+                    statement.update(other_account = "%s-%s/%s" % (m.group(3), m.group(4), m.group(2)))
                 else:
                     raise MT940.InvalidFieldValue("Invalid field 86:38 value `%s`" % line[3:])           
             elif line.startswith('?60'):
