@@ -136,19 +136,19 @@ class MTStatementParser(object):
     _encoding = None
     _statement_class = MTStatement
 
-    REHEADER = re.compile("^\{1\:F01([A-Z]{12})([0-9]{4})([0-9]{6})\}"
+    RE_HEADER = re.compile("^\{1\:F01([A-Z]{12})([0-9]{4})([0-9]{6})\}"
                       "\{2\:I([0-9]{3})([A-Z]{12})([A-Z])\}"
                       "\{3\:(\{[0-9]{3}\:.+\})*}"
                       "\{4\:$"
                     )
 
-    RE20 = re.compile("^(.{1:16})$")
-    RE25 = re.compile("^(.{1:35})$")
-    RE28C = re.compile("^([0-9]{1,4})(\/([0-9]{1,5}))?$")
-    RE61 = re.compile("^([0-9]{2})([0-9]{2})([0-9]{2})([0-9]{2})([0-9]{2})"
+    RE_FIELD = re.compile("^\:([0-9A-Z]+)\:(.*)$")
+    RE_20 = re.compile("^(.{1:16})$")
+    RE_25 = re.compile("^(.{1:35})$")
+    RE_28C = re.compile("^([0-9]{1,4})(\/([0-9]{1,5}))?$")
+    RE_61 = re.compile("^([0-9]{2})([0-9]{2})([0-9]{2})([0-9]{2})([0-9]{2})"
                       "([CD])([0-9,]+)([A-Z]{4})([\w\/\. -]{0,16})"
                       "(\/\/([\w\/\. -]{0,16}))?$")
-
     
     def __init__(self):
         self._name = 'MTStatementParser'
@@ -181,11 +181,10 @@ class MTStatementParser(object):
 
     def _parse_statement(self, lines=[]):
 
-        field_re = re.compile("^\:([0-9A-Z]+)\:(.*)$")
         field = (None, None, [])
 
         for line in lines:
-            match = field_re.match(line)
+            match = self.RE_FIELD.match(line)
             if match:
                 if field[0]:
                     try: 
@@ -212,14 +211,14 @@ class MTStatementParser(object):
 
             
     def _parse_header(self, line):
-        if not self.REHEADER.match(line):
+        if not self.RE_HEADER.match(line):
             raise InvalidSwiftHeader("Invalid swift header `%s`" % line)
 
     def _statement_parsed(self):
         pass
 
     def _field_20(self, value, subfields=[]):
-        m = self.RE20.match(value)
+        m = self.RE_20.match(value)
         if m:
             self.current_statement = self._statement_class(m.group(1))
             self.statements.append(self.current_statement)
@@ -229,7 +228,7 @@ class MTStatementParser(object):
 
 
     def _field_25(self, value, subfields=[]):
-        m = self.RE25.match(value)
+        m = self.RE_25.match(value)
         if m:
             self.current_statement.account = m.group(1)
         else:
@@ -238,7 +237,7 @@ class MTStatementParser(object):
 
 
     def _field_28c(self, value, subfields=[]):
-        m = self.RE28C.match(value)
+        m = self.RE_28C.match(value)
         if m:
             self.current_statement.number = m.group(1)
         else:
@@ -247,7 +246,7 @@ class MTStatementParser(object):
 
 
     def _field_61(self, value, subfields=[]):
-        m = self.RE61.match(value)
+        m = self.RE_61.match(value)
         if m:
             value_date = datetime.date(2000 + int(m.group(1)), int(m.group(2)), int(m.group(3)))
             entry_date = datetime.date(value_date.year, int(m.group(4)), int(m.group(5)))
@@ -272,11 +271,11 @@ class MT940Parser(MTStatementParser):
     _statement_class = MT940Statement
 
     # matches 60F, 60M, 62F, 62M, 64, 65
-    RE6XX = re.compile("^([CD])([0-9]{2})([0-9]{2})([0-9]{2})([A-Z]{3})([0-9,]+)$")
+    RE_6XX = re.compile("^([CD])([0-9]{2})([0-9]{2})([0-9]{2})([A-Z]{3})([0-9,]+)$")
 
 
     def _field_6xx_balance(self, value, field):
-        m = self.RE6XX.match(value)
+        m = self.RE_6XX.match(value)
         if m:
             value_date = datetime.date(2000 + int(m.group(2)), int(m.group(3)), int(m.group(4)))
             currency = m.group(5)
@@ -313,13 +312,13 @@ class MT942Parser(MTStatementParser):
 
     _statment_class = MT942Statement
 
-    RE13D = re.compile("^([0-9]{10})([+-])([0-9]{4})$")
-    RE34F = re.compile("^([A-Z]{3})([CD])?([0-9,]+)$")
-    RE90X = re.compile("^([0-9]{1,5})([A-Z]{3})([0-9,]+)$")
+    RE_13D = re.compile("^([0-9]{10})([+-])([0-9]{4})$")
+    RE_34F = re.compile("^([A-Z]{3})([CD])?([0-9,]+)$")
+    RE_90X = re.compile("^([0-9]{1,5})([A-Z]{3})([0-9,]+)$")
 
     # todo fix
     def _field_13d(self, value, subfields=[]):
-        m = self.RE13D.match(value)
+        m = self.RE_13D.match(value)
         if m:
             try:
                 self.current_statement.date = datetime.datetime.strptime(m.group(0),"%y%m%d%H%M%z")  
@@ -331,7 +330,7 @@ class MT942Parser(MTStatementParser):
 
 
     def _field_90c(self, value, subfields=[]):
-        m = self.RE90X.match(value)
+        m = self.RE_90X.match(value)
         if m:
             self.credit_transactions = (m.group(1), m.group(2), m.group(2))
         else:
@@ -339,7 +338,7 @@ class MT942Parser(MTStatementParser):
         return m
 
     def _field_90d(self, value, subfields=[]):
-        m = self.RE90X.match(value)
+        m = self.RE_90X.match(value)
         if m:
             self.debit_transactions = (m.group(1), m.group(2), m.group(2))
         else:
@@ -348,7 +347,7 @@ class MT942Parser(MTStatementParser):
 
 
     def _field_34f(self, value, subfields=[]):
-        m = self.RE34F.match(value)
+        m = self.RE_34F.match(value)
         if m:
             # first occurence => debit, second occurence => credit (or according to indicator)
             if m.group(2) == 'C' or self.current_statement.debit_minimum_amount[0]:

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
-from swift import SwiftReader
+import json
+from swift import SwiftReader, MTJSONEncoder
 from swift.TabaSK import TabaParser942
 
 if __name__ == '__main__':
@@ -11,3 +12,4 @@ if __name__ == '__main__':
     for filename in glob.glob(pattern):
         print "Parsing %s ..." % filename
         statements = parser.parse_file(filename)
+        j = json.dumps(statements, cls=MTJSONEncoder, sort_keys = True, indent = 2)

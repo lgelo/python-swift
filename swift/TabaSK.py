@@ -5,8 +5,12 @@ import datetime, re
 import MT940
 
 class MT940TransactionSK(MT940.MTTransaction):
-    __slots__ = ['vs', 'ks', 'ss', 'message', 'other_account', 
+    __slots__ = ['type', 'vs', 'ks', 'ss', 'message', 'other_account', 
                  'other_name', 'message', 'pos_number', 'other_ref']
+
+    def __init__(self):
+        super(MT940.MTTransaction, self).__init__()
+        self.type = ()
 
 class MT940StatementSK(MT940.MT940Statement):
     _transaction_class = MT940TransactionSK
@@ -22,8 +26,10 @@ class TabaParser940(MT940.MT940Parser):
     _trailer = '-'
     _encoding = 'ibm852'
 
-    RE20 = re.compile("^MC940([0-9]{6})00000$")
-    RE25 = re.compile("^SK([0-9]{2})([0-9]{4})([0-9]{6})([0-9]{10})$")
+    RE_20 = re.compile("^MC940([0-9]{6})00000$")
+    RE_25 = re.compile("^SK([0-9]{2})([0-9]{4})([0-9]{6})([0-9]{10})$")
+    RE_86_00 = re.compile("^([0-9]{3})\?00([0-9A-Za-z_ -]+)$")
+    RE_EMPTY_FIELD = re.compile('^\?\d\d$')
 
     def __init__(self):
         super(TabaParser940, self).__init__()
@@ -37,9 +43,14 @@ class TabaParser940(MT940.MT940Parser):
         statement = self.current_statement
         type_code = getattr(statement.current_transaction(), 'type_code', None)
         cust_ref = getattr(statement.current_transaction(), 'cust_ref', None)
+        m = self.RE_86_00.match(value)
+        if m:
+            statement.update_transaction(type = (m.group(1), m.group(2)))
+        else:
+            raise MT940.InvalidFieldValue("Invalid field 86:00 value `%s`" % value)              
 
         for line in subfields:
-            if re.match('^\?\d\d$', line):
+            if self.RE_EMPTY_FIELD.match(line):
                 continue
             if line.startswith('?20VS'):
                 statement.update_transaction(vs=line[5:])
@@ -61,7 +72,7 @@ class TabaParser940(MT940.MT940Parser):
                 elif cust_ref in ('COLLECTION', 'INTER.CAPITALIS.'):
                     pass
                 else:
-                    m = self.RE25.match(line[3:])
+                    m = self.RE_25.match(line[3:])
                     if m:
                         statement.update_transaction(other_account = "%s-%s/%s" % 
                                                     (m.group(3), m.group(4), m.group(2)))
@@ -72,7 +83,7 @@ class TabaParser940(MT940.MT940Parser):
             elif line.startswith('?33'):
                 statement.update_transaction(True, other_name=" " +line[3:])
             elif line.startswith('?38') and cust_ref not in ('COLLECTION', 'INTER.CAPITALIS.', 'DEPOSIT', 'FEES'):
-                m = self.RE25.match(line[3:])
+                m = self.RE_25.match(line[3:])
                 if m:
                     statement.update(other_account = "%s-%s/%s" % (m.group(3), m.group(4), m.group(2)))
                 else:
@@ -84,16 +95,16 @@ class TabaParser942(MT940.MT942Parser):
 
     _statement_class = MT942StatementSK
 
-    RE13 = re.compile("^([0-9]{10})$")
-    RE20 = re.compile("^([0-9]{4})-([0-9]{2})-([0-9]{2})-([0-9]{2})\.([0-9]{2})$")
-    RE25 = re.compile("^([0-9]{4})\/([0-9]{10})$")
+    RE_13 = re.compile("^([0-9]{10})$")
+    RE_20 = re.compile("^([0-9]{4})-([0-9]{2})-([0-9]{2})-([0-9]{2})\.([0-9]{2})$")
+    RE_25 = re.compile("^([0-9]{4})\/([0-9]{10})$")
 
     def __init__(self):
         super(TabaParser942, self).__init__()
         self._name = 'TaBa SK MT942 Parser'
 
     def _field_13(self, value, subfields=[]):
-        m = self.RE13.match(value)
+        m = self.RE_13.match(value)
         if m:
             try:
               self.current_statement.date = datetime.datetime.strptime(m.group(1),"%y%m%d%H%M")  
