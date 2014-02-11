@@ -26,7 +26,7 @@ class UnfinishedStatement(Exception):
 
 class MTTransaction(JSONObject):
 
-    __slots__ = ['value_date', 'entry_date', 'amount', 'type_code', 'cust_ref', 'bank_ref']
+    __slots__ = ['value_date', 'entry_date', 'amount', 'sign','type_code', 'cust_ref', 'bank_ref']
 
     def __init__(self):
         for attr in self.__slots__:
@@ -226,13 +226,12 @@ class MTStatementParser(object):
             value_date = datetime.date(2000 + int(m.group(1)), int(m.group(2)), int(m.group(3)))
             entry_date = datetime.date(value_date.year, int(m.group(4)), int(m.group(5)))
             amount = Decimal(m.group(7).replace(',','.'))
-            if m.group(6) == 'D':
-                amount = -amount
+            sign = '-' if m.group(6) == 'D' else '+'
             type_code = m.group(8)
             cust_ref = m.group(9)
             bank_ref = m.group(10)
             self.current_statement.add_transaction(value_date = value_date, entry_date = entry_date, 
-                    amount = amount, type_code = type_code, cust_ref = cust_ref, bank_ref = bank_ref)
+                    amount = amount, sign = sign, type_code = type_code, cust_ref = cust_ref, bank_ref = bank_ref)
         else:
             raise InvalidFieldValue("Invalid field 61 value `%s`" % value)
         return m

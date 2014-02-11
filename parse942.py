@@ -12,4 +12,4 @@ if __name__ == '__main__':
     for filename in glob.glob(pattern):
         print "Parsing %s ..." % filename
         statements = parser.parse_file(filename)
-        j = json.dumps(statements, cls=MTJSONEncoder, sort_keys = True, indent = 2)
+        #j = json.dumps(statements, cls=MTJSONEncoder, sort_keys = True, indent = 2)
