@@ -18,6 +18,8 @@ class MT940StatementSK(MT940.MT940Statement):
 # todo
 class MT942StatementSK(MT940.MT942Statement):
     _transaction_class = MT940TransactionSK
+    _json_ignore = ("credit_minimum_amount", "credit_transactions", 
+                    "debit_minimum_amount", "debit_transactions", "number") 
 
 class TabaParser940(MT940.MT940Parser):
 
@@ -95,6 +97,8 @@ class TabaParser942(MT940.MT942Parser):
 
     _statement_class = MT942StatementSK
 
+    _encoding = 'ibm852'
+
     RE_13 = re.compile("^([0-9]{10})$")
     RE_20 = re.compile("^([0-9]{4})-([0-9]{2})-([0-9]{2})-([0-9]{2})\.([0-9]{2})$")
     RE_25 = re.compile("^([0-9]{4})\/([0-9]{10})$")
@@ -152,6 +156,10 @@ class TabaParser942(MT940.MT942Parser):
                                                 (m.group(3), m.group(4), m.group(2)))
                 else:
                     raise MT940.InvalidFieldValue("Invalid field 86:31 value `%s`" % value)
+            elif line.startswith('?32'):
+                statement.update_transaction(other_name=line[3:])
+            elif line.startswith('?33'):
+                statement.update_transaction(True, other_name=line[3:])
             elif line.startswith('?60'):
                 statement.update_transaction(message = line[3:])
             elif line.startswith('?61') or line.startswith('?62') or line.startswith('?63') \
@@ -159,11 +167,11 @@ class TabaParser942(MT940.MT942Parser):
                 if line[3:]:
                     statement.update_transaction(True, message = line[3:])
         
+        # try to get VS,SS,KS from end-to-end reference
         ref = getattr(statement.current_transaction(),'other_ref',None)
-        (vs, ss, ks) = (None, None, None)
         if ref:
             for val in self.RE_SYMBOL.findall(ref):
-                statement.update_transaction(**{val[:2].lower() : val[3:]})
+                statement.update_transaction(**{val[:2].lower() : val[2:]})
 
     def _field_90c(self, value, subfields=[]):
         pass

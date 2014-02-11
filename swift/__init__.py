@@ -8,11 +8,14 @@ from itertools import chain
 
 class JSONObject(object):
 
+    _json_ignore = ()
+
     def _attrs(self):
         return list(set(chain(*[getattr(cls, '__slots__', []) for cls in type(self).__mro__])))
 
     def to_json(self):
-        return dict((k, getattr(self,k,'')) for k in self._attrs() if not k.startswith('_') )
+        return dict((k, getattr(self,k,'')) \
+            for k in self._attrs() if not (k.startswith('_') or k in self._json_ignore))
 
 
 class MTJSONEncoder(JSONEncoder):

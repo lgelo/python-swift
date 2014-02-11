@@ -74,7 +74,7 @@ class MTStatement(JSONObject):
 
     def to_json(self):
         json = super(MTStatement, self).to_json()
-        json['statements'] = list(s.to_json() for s in self._transactions)
+        json['transactions'] = list(s.to_json() for s in self._transactions)
         return json
 
     #def __str__(self):
