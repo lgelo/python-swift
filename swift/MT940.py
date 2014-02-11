@@ -6,31 +6,6 @@ from decimal import Decimal
 
 from . import JSONObject
 
-F61_CODES = {
-            'FCHG': 'Charges and other expenses',
-            'FCHK': 'Cheques',
-            'FINT': 'Interest',
-            'FRTI': 'Returned item',
-            'NBOE': 'Bill of exchange',
-            'NCHG': 'Charges and other expenses',
-            'NCHK': 'Cheques',
-            'NCOL': 'Collections',
-            'NCOM': 'Commisions',
-            'NDCR': 'Documentary credit',
-            'NDIV': 'Dividends-Warrants',
-            'NECK': 'Eurocheques',
-            'NEQA': 'Equivalent amount',
-            'NFEX': 'Foreign exchange',
-            'NINT': 'Interest',
-            'NLDP': 'Loan deposit',
-            'NMSC': 'Miscellaneous',
-            'NRTI': 'Returned item',
-            'NSEC': 'Securities',
-            'NSTO': 'Standing order',
-            'NTCK': 'Travellers cheques',
-            'NTRF': 'Transfer',
-            }
-
 class RunawayField(Exception):
     pass
 
