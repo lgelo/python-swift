@@ -24,7 +24,7 @@ class MTJSONEncoder(JSONEncoder):
         if isinstance(obj, Decimal):
             return float(obj)
         elif isinstance(obj, date):
-            return obj.strftime('%y-%m-%d')
+            return obj.strftime('%Y-%m-%d')
         if isinstance(obj, JSONObject):
             return obj.to_json()
 
