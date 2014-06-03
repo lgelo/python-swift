@@ -8,8 +8,8 @@ if __name__ == '__main__':
     import os, glob
     pattern = "download/*.STA"
 
-    parser = SwiftReader(TabaParser940)
     for filename in glob.glob(pattern):
         print "Parsing %s ..." % filename
+        parser = SwiftReader(TabaParser940)
         statements = parser.parse_file(filename)
         print json.dumps(statements, cls=MTJSONEncoder, sort_keys = True, indent = 2)
