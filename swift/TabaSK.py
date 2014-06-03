@@ -74,22 +74,13 @@ class TabaParser940(MT940.MT940Parser):
                 elif cust_ref in ('COLLECTION', 'INTER.CAPITALIS.'):
                     pass
                 else:
-                    m = self.RE_25.match(line[3:])
-                    if m:
-                        statement.update_transaction(other_account = "%s-%s/%s" % 
-                                                    (m.group(3), m.group(4), m.group(2)))
-                    else:
-                        raise MT940.InvalidFieldValue("Invalid field 86:31 value `%s`" % line[3:])
+                    statement.update_transaction(other_account = line[3:])
             elif line.startswith('?32'):
                 statement.update_transaction(other_name=line[3:])
             elif line.startswith('?33'):
                 statement.update_transaction(True, other_name=" " +line[3:])
             elif line.startswith('?38') and cust_ref not in ('COLLECTION', 'INTER.CAPITALIS.', 'DEPOSIT', 'FEES', 'WITHDRAWAL'):
-                m = self.RE_25.match(line[3:])
-                if m:
-                    statement.update(other_account = "%s-%s/%s" % (m.group(3), m.group(4), m.group(2)))
-                else:
-                    raise MT940.InvalidFieldValue("Invalid field 86:38 value `%s`" % line[3:])           
+                statement.update(other_account = line[3:])
             elif line.startswith('?60'):
                 statement.update_transaction(other_ref = line[3:])
 
