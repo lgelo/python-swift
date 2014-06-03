@@ -69,7 +69,7 @@ class TabaParser940(MT940.MT940Parser):
                 if line[3:]:
                     statement.update_transaction(True, message = line[3:])
             elif line.startswith('?31'):
-                if cust_ref in ('DEPOSIT', 'FEES'):
+                if cust_ref in ('DEPOSIT', 'FEES', 'WITHDRAWAL'):
                     statement.update_transaction(other_name =  line[3:])
                 elif cust_ref in ('COLLECTION', 'INTER.CAPITALIS.'):
                     pass
@@ -84,7 +84,7 @@ class TabaParser940(MT940.MT940Parser):
                 statement.update_transaction(other_name=line[3:])
             elif line.startswith('?33'):
                 statement.update_transaction(True, other_name=" " +line[3:])
-            elif line.startswith('?38') and cust_ref not in ('COLLECTION', 'INTER.CAPITALIS.', 'DEPOSIT', 'FEES'):
+            elif line.startswith('?38') and cust_ref not in ('COLLECTION', 'INTER.CAPITALIS.', 'DEPOSIT', 'FEES', 'WITHDRAWAL'):
                 m = self.RE_25.match(line[3:])
                 if m:
                     statement.update(other_account = "%s-%s/%s" % (m.group(3), m.group(4), m.group(2)))
