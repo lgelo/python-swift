@@ -32,6 +32,7 @@ class TabaParser940(MT940.MT940Parser):
     RE_25 = re.compile("^SK([0-9]{2})([0-9]{4})([0-9]{6})([0-9]{10})$")
     RE_86_00 = re.compile("^([0-9]{3})\?00([0-9A-Za-z_ -]+)$")
     RE_EMPTY_SUBFIELD = re.compile('^\?\d\d$')
+    RE_SYMBOL = re.compile('[VSK]S[0-9]{0,10}')
 
     def __init__(self):
         super(TabaParser940, self).__init__()
@@ -83,6 +84,14 @@ class TabaParser940(MT940.MT940Parser):
                 statement.update(other_account = line[3:])
             elif line.startswith('?60'):
                 statement.update_transaction(other_ref = line[3:])
+
+        # try to get VS,SS,KS from end-to-end reference
+        ref = getattr(statement.current_transaction(),'other_ref',None)
+        if ref:
+            for val in self.RE_SYMBOL.findall(ref):
+                statement.update_transaction(**{val[:2].lower() : val[2:]})
+
+
 
 class TabaParser942(MT940.MT942Parser):
 
