@@ -32,6 +32,7 @@ class TabaParser940(MT940.MT940Parser):
     RE_25 = re.compile("^SK([0-9]{2})([0-9]{4})([0-9]{6})([0-9]{10})$")
     RE_86_00 = re.compile("^([0-9]{3})\?00([0-9A-Za-z_ -]+)$")
     RE_EMPTY_SUBFIELD = re.compile('^\?\d\d$')
+    RE_SYMBOL = re.compile('[VSK]S[0-9]{0,10}')
 
     def __init__(self):
         super(TabaParser940, self).__init__()
@@ -69,29 +70,28 @@ class TabaParser940(MT940.MT940Parser):
                 if line[3:]:
                     statement.update_transaction(True, message = line[3:])
             elif line.startswith('?31'):
-                if cust_ref in ('DEPOSIT', 'FEES'):
+                if cust_ref in ('DEPOSIT', 'FEES', 'WITHDRAWAL'):
                     statement.update_transaction(other_name =  line[3:])
                 elif cust_ref in ('COLLECTION', 'INTER.CAPITALIS.'):
                     pass
                 else:
-                    m = self.RE_25.match(line[3:])
-                    if m:
-                        statement.update_transaction(other_account = "%s-%s/%s" % 
-                                                    (m.group(3), m.group(4), m.group(2)))
-                    else:
-                        raise MT940.InvalidFieldValue("Invalid field 86:31 value `%s`" % line[3:])
+                    statement.update_transaction(other_account = line[3:])
             elif line.startswith('?32'):
                 statement.update_transaction(other_name=line[3:])
             elif line.startswith('?33'):
                 statement.update_transaction(True, other_name=" " +line[3:])
-            elif line.startswith('?38') and cust_ref not in ('COLLECTION', 'INTER.CAPITALIS.', 'DEPOSIT', 'FEES'):
-                m = self.RE_25.match(line[3:])
-                if m:
-                    statement.update(other_account = "%s-%s/%s" % (m.group(3), m.group(4), m.group(2)))
-                else:
-                    raise MT940.InvalidFieldValue("Invalid field 86:38 value `%s`" % line[3:])           
+            elif line.startswith('?38') and cust_ref not in ('COLLECTION', 'INTER.CAPITALIS.', 'DEPOSIT', 'FEES', 'WITHDRAWAL'):
+                statement.update(other_account = line[3:])
             elif line.startswith('?60'):
                 statement.update_transaction(other_ref = line[3:])
+
+        # try to get VS,SS,KS from end-to-end reference
+        ref = getattr(statement.current_transaction(),'other_ref',None)
+        if ref:
+            for val in self.RE_SYMBOL.findall(ref):
+                statement.update_transaction(**{val[:2].lower() : val[2:]})
+
+
 
 class TabaParser942(MT940.MT942Parser):
 
@@ -104,7 +104,6 @@ class TabaParser942(MT940.MT942Parser):
     RE_25 = re.compile("^([0-9]{4})\/([0-9]{10})$")
     RE_86_00 = re.compile("^([0-9]{3})\?00([0-9A-Za-z_ -]+)$")
     RE_EMPTY_SUBFIELD = re.compile('^\?\d\d$')
-    RE_IBAN_SK = re.compile("^SK([0-9]{2})([0-9]{4})([0-9]{6})([0-9]{10})$")
     RE_SYMBOL = re.compile('[VSK]S[0-9]{0,10}')
 
     def __init__(self):
@@ -150,12 +149,7 @@ class TabaParser942(MT940.MT942Parser):
             elif line.startswith('?25'):
                     statement.update_transaction(True, message = line[3:])
             elif line.startswith('?31') and sign == '+':
-                m = self.RE_IBAN_SK.match(line[3:])
-                if m:
-                    statement.update_transaction(other_account = "%s-%s/%s" % 
-                                                (m.group(3), m.group(4), m.group(2)))
-                else:
-                    raise MT940.InvalidFieldValue("Invalid field 86:31 value `%s`" % value)
+                statement.update_transaction(other_account = line[3:])
             elif line.startswith('?32'):
                 statement.update_transaction(other_name=line[3:])
             elif line.startswith('?33'):

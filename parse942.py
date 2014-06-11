@@ -8,8 +8,8 @@ if __name__ == '__main__':
     import os, glob
     pattern = "download/*.VML"
 
-    parser = SwiftReader(TabaParser942)
     for filename in glob.glob(pattern):
         print "Parsing %s ..." % filename
+        parser = SwiftReader(TabaParser942)
         statements = parser.parse_file(filename)
         print json.dumps(statements, cls=MTJSONEncoder, sort_keys = True, indent = 2)
